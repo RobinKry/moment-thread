@@ -488,7 +488,16 @@ function formatTime(total: number) {
   return `${m}:${s}`;
 }
 
-/* ---------------- Timeline ---------------- */
+/* ---------------- History (Timeline + AI Insights) ---------------- */
+
+function HistoryPanel() {
+  return (
+    <div className="space-y-8">
+      <AiMemoryInsights />
+      <TimelinePanel />
+    </div>
+  );
+}
 
 function TimelinePanel() {
   return (
@@ -526,6 +535,363 @@ function TimelinePanel() {
         ))}
       </ol>
     </Card>
+  );
+}
+
+/* ---------------- AI Memory Insights ---------------- */
+
+function AiMemoryInsights() {
+  const topGap = gapCategories[0];
+  const bestFormat = [...trainingFormats].sort(
+    (a, b) => b.successRate - a.successRate
+  )[0];
+  const topRepeat = repeatedQuestions[0];
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-primary">
+              <Brain className="h-4 w-4" />
+            </span>
+            <h2 className="text-xl font-medium">AI Memory Insights</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Patterns the app noticed from your recent calls and training.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Repeated questions */}
+        <Card className="rounded-3xl border-border/60 p-5">
+          <CardHeading
+            icon={<TrendingUp className="h-4 w-4" />}
+            title="Repeated questions"
+            hint="Most asked this week"
+          />
+          <ul className="mt-4 space-y-3">
+            {repeatedQuestions.slice(0, 4).map((r) => (
+              <li key={r.q} className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm text-foreground">"{r.q}"</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {r.category}
+                  </p>
+                </div>
+                <Badge variant="secondary" className="rounded-full">
+                  {r.count}×
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        </Card>
+
+        {/* Frequent memory gaps */}
+        <Card className="rounded-3xl border-border/60 p-5">
+          <CardHeading
+            icon={<Compass className="h-4 w-4" />}
+            title="Frequent memory gaps"
+            hint={`Most confusion: ${topGap.label.toLowerCase()}`}
+          />
+          <div className="mt-4 space-y-3">
+            {gapCategories.slice(0, 5).map((g) => (
+              <div key={g.key}>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-foreground">{g.label}</span>
+                  <span className="text-muted-foreground">{g.share}%</span>
+                </div>
+                <Progress value={g.share} className="mt-1 h-1.5" />
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Improvement trend */}
+        <Card className="rounded-3xl border-border/60 p-5">
+          <CardHeading
+            icon={<TrendingDown className="h-4 w-4" />}
+            title="Improvement trend"
+            hint={`"${topRepeat.q}" is fading`}
+          />
+          <TrendChart values={topRepeat.trend} labels={dayLabels} />
+          <p className="mt-3 text-xs text-muted-foreground">
+            The hospital appointment memory was repeated{" "}
+            {topRepeat.trend[0]} times on Monday and{" "}
+            {topRepeat.trend[topRepeat.trend.length - 1]} times today. Repeated
+            training seems to be reducing the confusion.
+          </p>
+        </Card>
+
+        {/* Best support format */}
+        <Card className="rounded-3xl border-border/60 p-5">
+          <CardHeading
+            icon={<Volume2 className="h-4 w-4" />}
+            title="Best support format"
+            hint={`${bestFormat.format} works best`}
+          />
+          <div className="mt-4 space-y-3">
+            {trainingFormats.map((f) => (
+              <div key={f.format}>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="inline-flex items-center gap-1.5 capitalize text-foreground">
+                    <FormatIcon format={f.format} />
+                    {f.format}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {f.successRate}% remembered
+                  </span>
+                </div>
+                <Progress value={f.successRate} className="mt-1 h-1.5" />
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Voice explanations seem to help most — {bestFormat.remembered} of{" "}
+            {bestFormat.sessions} voice memories were marked remembered.
+          </p>
+        </Card>
+      </div>
+
+      <Disclaimer />
+    </section>
+  );
+}
+
+function CardHeading({
+  icon,
+  title,
+  hint,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center gap-2">
+        <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-primary">
+          {icon}
+        </span>
+        <h3 className="text-sm font-medium text-foreground">{title}</h3>
+      </div>
+      {hint && (
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function FormatIcon({ format }: { format: "voice" | "text" | "visual" }) {
+  if (format === "voice") return <Volume2 className="h-3.5 w-3.5" />;
+  if (format === "visual") return <ImageIcon className="h-3.5 w-3.5" />;
+  return <FileText className="h-3.5 w-3.5" />;
+}
+
+function TrendChart({ values, labels }: { values: number[]; labels: string[] }) {
+  const max = Math.max(1, ...values);
+  return (
+    <div className="mt-3 flex h-24 items-end gap-2">
+      {values.map((v, i) => {
+        const h = Math.max(6, Math.round((v / max) * 100));
+        return (
+          <div key={i} className="flex flex-1 flex-col items-center gap-1">
+            <div
+              className="w-full rounded-md bg-primary/70"
+              style={{ height: `${h}%` }}
+              title={`${labels[i]}: ${v}`}
+            />
+            <span className="text-[10px] text-muted-foreground">
+              {labels[i]}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Disclaimer() {
+  return (
+    <p className="flex items-start gap-2 rounded-2xl border border-dashed border-border/70 bg-muted/30 p-3 text-[11px] leading-relaxed text-muted-foreground">
+      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      {insightsDisclaimer}
+    </p>
+  );
+}
+
+/* ---------------- Memory Training ---------------- */
+
+function TrainingPanel() {
+  const remembered = trainingSessions.filter((s) => s.remembered).length;
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-medium">Memory training</h2>
+        <p className="text-sm text-muted-foreground">
+          Short exercises to gently rehearse what matters most.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="rounded-3xl border-border/60 p-5">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            Training score
+          </p>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-3xl font-medium">{trainingScore}</span>
+            <span className="text-sm text-muted-foreground">/ 100</span>
+          </div>
+          <Progress value={trainingScore} className="mt-3 h-2" />
+        </Card>
+        <Card className="rounded-3xl border-border/60 p-5">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            Sessions this week
+          </p>
+          <div className="mt-1 text-3xl font-medium">
+            {trainingSessions.length}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {remembered} marked as remembered
+          </p>
+        </Card>
+        <Card className="rounded-3xl border-border/60 p-5">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            Best format
+          </p>
+          <div className="mt-1 text-2xl font-medium capitalize">
+            {trainingFormats[0].format}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {trainingFormats[0].successRate}% remembered
+          </p>
+        </Card>
+      </div>
+
+      <Card className="rounded-3xl border-border/60 p-6">
+        <h3 className="text-sm font-medium">Recent sessions</h3>
+        <ul className="mt-4 divide-y divide-border/60">
+          {trainingSessions.map((s) => (
+            <li key={s.id} className="flex items-center gap-3 py-3">
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-primary">
+                <FormatIcon format={s.format} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{s.topic}</div>
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {s.date} · {s.format}
+                </div>
+              </div>
+              <div className="w-28">
+                <Progress value={s.score} className="h-1.5" />
+                <div className="mt-1 text-right text-[11px] text-muted-foreground">
+                  {s.score}%
+                </div>
+              </div>
+              <Badge
+                variant={s.remembered ? "secondary" : "outline"}
+                className="rounded-full text-[10px]"
+              >
+                {s.remembered ? "Remembered" : "Needs review"}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </div>
+  );
+}
+
+/* ---------------- Dashboard ---------------- */
+
+function DashboardPanel() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-medium">Dashboard</h2>
+        <p className="text-sm text-muted-foreground">
+          A weekly view of memory patterns — for caregivers and for you.
+        </p>
+      </div>
+
+      <Card className="rounded-3xl border-border/60 p-6">
+        <div className="flex items-center gap-2">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-primary">
+            <HeartHandshake className="h-4 w-4" />
+          </span>
+          <h3 className="text-base font-medium">Caregiver Feedback Summary</h3>
+        </div>
+        <p className="mt-4 text-sm leading-relaxed text-foreground">
+          {weeklySummary.text}
+        </p>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <MiniStat
+            label="Top repeated memory"
+            value={weeklySummary.topRepeated}
+          />
+          <MiniStat
+            label="Strongest category"
+            value={weeklySummary.strongest}
+            tone="positive"
+          />
+          <MiniStat
+            label="Weakest category"
+            value={weeklySummary.weakest}
+            tone="watch"
+          />
+          <MiniStat
+            label="Recommended action"
+            value={weeklySummary.action}
+          />
+        </div>
+      </Card>
+
+      <Card className="rounded-3xl border-border/60 bg-primary/5 p-6">
+        <div className="flex items-center gap-2 text-primary">
+          <Sparkle className="h-4 w-4" />
+          <h3 className="text-sm font-medium uppercase tracking-wide">
+            A note for {weeklySummary.patientName}
+          </h3>
+        </div>
+        <p className="mt-3 text-base leading-relaxed text-foreground">
+          {patientFriendly}
+        </p>
+      </Card>
+
+      <Disclaimer />
+    </div>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "positive" | "watch";
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border p-4",
+        tone === "positive"
+          ? "border-emerald-500/20 bg-emerald-500/5"
+          : tone === "watch"
+          ? "border-amber-500/20 bg-amber-500/5"
+          : "border-border/60 bg-card"
+      )}
+    >
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-sm text-foreground">{value}</p>
+    </div>
   );
 }
 
