@@ -68,11 +68,8 @@ function AppPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 pb-24">
-        <Tabs defaultValue="voice">
-          <TabsList className="grid w-full grid-cols-5 rounded-full bg-muted/60 p-1">
-            <TabsTrigger value="voice" className="rounded-full">
-              <Phone className="mr-2 h-4 w-4" /> Call
-            </TabsTrigger>
+        <Tabs defaultValue="history">
+          <TabsList className="grid w-full grid-cols-4 rounded-full bg-muted/60 p-1">
             <TabsTrigger value="history" className="rounded-full">
               <Clock className="mr-2 h-4 w-4" /> History
             </TabsTrigger>
@@ -80,16 +77,13 @@ function AppPage() {
               <FileText className="mr-2 h-4 w-4" /> Files
             </TabsTrigger>
             <TabsTrigger value="training" className="rounded-full">
-              <GraduationCap className="mr-2 h-4 w-4" /> Training
+              <GraduationCap className="mr-2 h-4 w-4" /> Memory Training
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="rounded-full">
               <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="voice" className="mt-6">
-            <VoicePanel />
-          </TabsContent>
           <TabsContent value="history" className="mt-6">
             <HistoryPanel />
           </TabsContent>
