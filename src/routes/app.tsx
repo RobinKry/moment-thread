@@ -76,8 +76,8 @@ function AppPage() {
             <TabsTrigger value="history" className="rounded-full">
               <Clock className="mr-2 h-4 w-4" /> History
             </TabsTrigger>
-            <TabsTrigger value="people" className="rounded-full">
-              <Users className="mr-2 h-4 w-4" /> People
+            <TabsTrigger value="files" className="rounded-full">
+              <FileText className="mr-2 h-4 w-4" /> Files
             </TabsTrigger>
             <TabsTrigger value="training" className="rounded-full">
               <GraduationCap className="mr-2 h-4 w-4" /> Training
@@ -93,8 +93,8 @@ function AppPage() {
           <TabsContent value="history" className="mt-6">
             <HistoryPanel />
           </TabsContent>
-          <TabsContent value="people" className="mt-6">
-            <PeoplePanel />
+          <TabsContent value="files" className="mt-6">
+            <FilesPanel />
           </TabsContent>
           <TabsContent value="training" className="mt-6">
             <TrainingPanel />
