@@ -5,7 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { timeline, people, memories, demoAnswers } from "@/data/mock";
+import {
+  repeatedQuestions,
+  gapCategories,
+  trainingFormats,
+  trainingSessions,
+  trainingScore,
+  dayLabels,
+  weeklySummary,
+  patientFriendly,
+  insightsDisclaimer,
+} from "@/data/insights";
 import {
   Clock,
   Users,
@@ -18,6 +30,16 @@ import {
   Search,
   MapPin,
   Sparkle,
+  Brain,
+  LayoutDashboard,
+  GraduationCap,
+  TrendingDown,
+  TrendingUp,
+  Volume2,
+  Image as ImageIcon,
+  FileText,
+  HeartHandshake,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,36 +71,36 @@ function AppPage() {
         <Tabs defaultValue="voice">
           <TabsList className="grid w-full grid-cols-5 rounded-full bg-muted/60 p-1">
             <TabsTrigger value="voice" className="rounded-full">
-              <Mic className="mr-2 h-4 w-4" /> Voice
+              <Phone className="mr-2 h-4 w-4" /> Call
             </TabsTrigger>
-            <TabsTrigger value="timeline" className="rounded-full">
-              <Clock className="mr-2 h-4 w-4" /> Today
+            <TabsTrigger value="history" className="rounded-full">
+              <Clock className="mr-2 h-4 w-4" /> History
             </TabsTrigger>
             <TabsTrigger value="people" className="rounded-full">
               <Users className="mr-2 h-4 w-4" /> People
             </TabsTrigger>
-            <TabsTrigger value="context" className="rounded-full">
-              <Compass className="mr-2 h-4 w-4" /> Context
+            <TabsTrigger value="training" className="rounded-full">
+              <GraduationCap className="mr-2 h-4 w-4" /> Training
             </TabsTrigger>
-            <TabsTrigger value="memories" className="rounded-full">
-              <BookOpen className="mr-2 h-4 w-4" /> Memories
+            <TabsTrigger value="dashboard" className="rounded-full">
+              <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="voice" className="mt-6">
             <VoicePanel />
           </TabsContent>
-          <TabsContent value="timeline" className="mt-6">
-            <TimelinePanel />
+          <TabsContent value="history" className="mt-6">
+            <HistoryPanel />
           </TabsContent>
           <TabsContent value="people" className="mt-6">
             <PeoplePanel />
           </TabsContent>
-          <TabsContent value="context" className="mt-6">
-            <ContextPanel />
+          <TabsContent value="training" className="mt-6">
+            <TrainingPanel />
           </TabsContent>
-          <TabsContent value="memories" className="mt-6">
-            <MemoriesPanel />
+          <TabsContent value="dashboard" className="mt-6">
+            <DashboardPanel />
           </TabsContent>
         </Tabs>
       </main>
