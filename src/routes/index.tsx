@@ -31,9 +31,7 @@ function Landing() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <Hero />
-      <Demo />
       <Features />
-      <HowItWorks />
       <Accessibility />
       <Footer />
     </div>
@@ -50,9 +48,7 @@ function Header() {
         <span className="text-lg font-medium tracking-tight">Continuity</span>
       </Link>
       <nav className="hidden gap-8 text-sm text-muted-foreground md:flex">
-        <a href="#demo" className="hover:text-foreground">Demo</a>
         <a href="#features" className="hover:text-foreground">Features</a>
-        <a href="#how" className="hover:text-foreground">How it works</a>
       </nav>
       <Link to="/app">
         <Button className="rounded-full">Open companion</Button>
@@ -79,11 +75,6 @@ function Hero() {
           <Link to="/app">
             <Button size="lg" className="rounded-full">Try the companion</Button>
           </Link>
-          <a href="#demo">
-            <Button size="lg" variant="outline" className="rounded-full">
-              See a demo
-            </Button>
-          </a>
         </div>
         <p className="mt-6 text-xs text-muted-foreground">
           Continuity is an assistive tool. It does not diagnose, treat, or replace healthcare professionals.
@@ -99,60 +90,6 @@ function Hero() {
         </div>
       </div>
     </section>
-  );
-}
-
-function Demo() {
-  return (
-    <section id="demo" className="mx-auto max-w-6xl px-6 py-16">
-      <div className="grid gap-8 md:grid-cols-[1fr_1.2fr]">
-        <div>
-          <h2 className="text-2xl font-medium tracking-tight md:text-3xl">
-            A simple, calm interaction.
-          </h2>
-          <p className="mt-3 text-muted-foreground">
-            Continuity listens, retrieves the relevant moments from the last hours
-            or days, and answers in plain language.
-          </p>
-          <Link to="/app" className="mt-6 inline-block">
-            <Button variant="outline" className="rounded-full">
-              Open the demo
-            </Button>
-          </Link>
-        </div>
-        <Card className="space-y-4 rounded-3xl border-border/60 p-6">
-          <Bubble role="user" text="Why am I at the hospital?" />
-          <Bubble
-            role="ai"
-            text="You are at Saint-Louis Hospital for your follow-up appointment after yesterday's MRI scan. Your brother Karim brought you here. Your appointment with Dr. Lefevre starts in about 20 minutes."
-          />
-          <div className="rounded-2xl bg-muted/60 p-4 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground">Reconstructed from</p>
-            <ul className="mt-2 space-y-1">
-              <li>· Yesterday — MRI scan</li>
-              <li>· Today 09:40 — Karim drove you here</li>
-              <li>· Today 10:30 — Appointment with Dr. Lefevre</li>
-            </ul>
-          </div>
-        </Card>
-      </div>
-    </section>
-  );
-}
-
-function Bubble({ role, text }: { role: "user" | "ai"; text: string }) {
-  return (
-    <div className={role === "user" ? "flex justify-end" : "flex"}>
-      <div
-        className={
-          role === "user"
-            ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-sm text-primary-foreground"
-            : "max-w-[85%] rounded-2xl rounded-bl-sm bg-secondary px-4 py-3 text-sm text-secondary-foreground"
-        }
-      >
-        {text}
-      </div>
-    </div>
   );
 }
 
@@ -179,28 +116,6 @@ function Features() {
             <h3 className="mt-4 text-base font-medium">{f.title}</h3>
             <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
           </Card>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function HowItWorks() {
-  const steps = [
-    { n: "1", t: "Listen", d: "Continuity captures conversations, notes and key events with consent." },
-    { n: "2", t: "Understand", d: "It links people, places and moments into a continuous thread." },
-    { n: "3", t: "Reconstruct", d: "When you ask, it answers in plain language — with the sources you can verify." },
-  ];
-  return (
-    <section id="how" className="mx-auto max-w-6xl px-6 py-16">
-      <h2 className="text-2xl font-medium tracking-tight md:text-3xl">How it works</h2>
-      <div className="mt-10 grid gap-6 md:grid-cols-3">
-        {steps.map((s) => (
-          <div key={s.n} className="rounded-3xl bg-muted/40 p-6">
-            <div className="text-sm text-muted-foreground">Step {s.n}</div>
-            <div className="mt-1 text-lg font-medium">{s.t}</div>
-            <p className="mt-2 text-sm text-muted-foreground">{s.d}</p>
-          </div>
         ))}
       </div>
     </section>
