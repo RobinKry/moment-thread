@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +20,8 @@ import {
 } from "@/data/insights";
 import {
   Clock,
-  Users,
   Compass,
   BookOpen,
-  Phone,
-  PhoneOff,
-  Mic,
-  MicOff,
   Search,
   MapPin,
   Sparkle,
