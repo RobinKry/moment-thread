@@ -72,14 +72,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "retentio" },
+      { name: "description", content: "Your Daily Compass is a voice-first AI companion that reconstructs life context and daily continuity." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "retentio" },
+      { property: "og:description", content: "Your Daily Compass is a voice-first AI companion that reconstructs life context and daily continuity." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "retentio" },
+      { name: "twitter:description", content: "Your Daily Compass is a voice-first AI companion that reconstructs life context and daily continuity." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/397e8cb9-4dd9-4c6b-900d-752abde3c3cd/id-preview-761cc503--620b1c73-a694-49a9-8aec-847d528a2cfb.lovable.app-1778931725125.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/397e8cb9-4dd9-4c6b-900d-752abde3c3cd/id-preview-761cc503--620b1c73-a694-49a9-8aec-847d528a2cfb.lovable.app-1778931725125.png" },
     ],
     links: [
       {
