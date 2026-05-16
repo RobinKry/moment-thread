@@ -1,22 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { VoiceOrb } from "@/components/voice-orb";
 import { timeline, people, memories, demoAnswers } from "@/data/mock";
 import {
   Clock,
   Users,
   Compass,
   BookOpen,
+  Phone,
+  PhoneOff,
   Mic,
+  MicOff,
   Search,
   MapPin,
   Sparkle,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app")({
   component: AppPage,
@@ -83,100 +86,384 @@ function AppPage() {
   );
 }
 
-/* ---------------- Voice ---------------- */
+/* ---------------- Voice (Call) ---------------- */
+
+type CallState =
+  | "ready"
+  | "calling"
+  | "listening"
+  | "thinking"
+  | "speaking"
+  | "ended";
+
+type Turn = { role: "ai" | "user"; text: string };
+
+const GREETING = "Hi, I'm here. What do you need help remembering?";
 
 function VoicePanel() {
-  const [listening, setListening] = useState(false);
-  const [exchange, setExchange] = useState<{
-    transcript: string;
-    answer: string;
-    sources: string[];
-  } | null>(null);
+  const [state, setState] = useState<CallState>("ready");
+  const [seconds, setSeconds] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [transcript, setTranscript] = useState<Turn[]>([]);
+  const [sources, setSources] = useState<string[]>([]);
+  const timersRef = useRef<number[]>([]);
 
-  const samplePrompts = demoAnswers.map((d) => d.q);
+  const inCall = state !== "ready" && state !== "ended";
 
-  const handleAsk = (q: string) => {
-    const match = demoAnswers.find((d) => d.q === q) ?? demoAnswers[0];
-    setListening(true);
-    setExchange({ transcript: q, answer: "", sources: [] });
-    setTimeout(() => {
-      setListening(false);
-      setExchange({ transcript: q, answer: match.answer, sources: match.sources });
-    }, 1400);
+  // Call timer
+  useEffect(() => {
+    if (!inCall) return;
+    const id = window.setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [inCall]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach((t) => clearTimeout(t));
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const schedule = (fn: () => void, ms: number) => {
+    const id = window.setTimeout(fn, ms);
+    timersRef.current.push(id);
   };
 
-  const toggleOrb = () => {
-    if (listening) {
-      setListening(false);
+  const clearTimers = () => {
+    timersRef.current.forEach((t) => clearTimeout(t));
+    timersRef.current = [];
+  };
+
+  const speak = (text: string, onDone: () => void) => {
+    if (
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window) ||
+      muted
+    ) {
+      // Fallback: estimate ~55ms per character
+      schedule(onDone, Math.min(6000, Math.max(1400, text.length * 45)));
       return;
     }
-    handleAsk(samplePrompts[0]);
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1;
+      u.pitch = 1;
+      u.onend = onDone;
+      u.onerror = onDone;
+      window.speechSynthesis.speak(u);
+    } catch {
+      schedule(onDone, Math.max(1400, text.length * 45));
+    }
   };
 
+  const startCall = () => {
+    clearTimers();
+    setTranscript([]);
+    setSources([]);
+    setSeconds(0);
+    setState("calling");
+    schedule(() => {
+      setState("speaking");
+      setTranscript([{ role: "ai", text: GREETING }]);
+      speak(GREETING, () => setState("listening"));
+    }, 1100);
+  };
+
+  const endCall = () => {
+    clearTimers();
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setState("ended");
+    schedule(() => setState("ready"), 1500);
+  };
+
+  const askQuestion = (q: string) => {
+    if (state !== "listening") return;
+    const match = demoAnswers.find((d) => d.q === q) ?? demoAnswers[0];
+    setTranscript((t) => [...t, { role: "user", text: q }]);
+    setSources([]);
+    setState("thinking");
+    schedule(() => {
+      setState("speaking");
+      setTranscript((t) => [...t, { role: "ai", text: match.answer }]);
+      setSources(match.sources);
+      speak(match.answer, () => setState("listening"));
+    }, 1200);
+  };
+
+  if (!inCall) {
+    return <ReadyScreen onCall={startCall} justEnded={state === "ended"} />;
+  }
+
   return (
-    <Card className="rounded-3xl border-border/60 p-8">
+    <CallScreen
+      state={state}
+      seconds={seconds}
+      muted={muted}
+      onToggleMute={() => setMuted((m) => !m)}
+      onEnd={endCall}
+      transcript={transcript}
+      sources={sources}
+      onAsk={askQuestion}
+    />
+  );
+}
+
+/* ---------------- Ready (idle) ---------------- */
+
+function ReadyScreen({
+  onCall,
+  justEnded,
+}: {
+  onCall: () => void;
+  justEnded: boolean;
+}) {
+  return (
+    <Card className="rounded-3xl border-border/60 p-10">
       <div className="flex flex-col items-center text-center">
-        <VoiceOrb listening={listening} onClick={toggleOrb} />
-        <p className="mt-6 text-sm text-muted-foreground">
-          {listening ? "Listening…" : "Tap to speak, or try a question below."}
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          Continuity
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {justEnded
+            ? "Call ended."
+            : "Press to call your memory companion."}
         </p>
 
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          {samplePrompts.map((p) => (
-            <button
-              key={p}
-              onClick={() => handleAsk(p)}
-              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
-            >
-              {p}
-            </button>
-          ))}
+        <button
+          type="button"
+          onClick={onCall}
+          aria-label="Call Continuity"
+          className="group relative mt-10 grid place-items-center"
+        >
+          <span className="absolute inset-0 -m-4 rounded-full bg-primary/15 transition-transform duration-500 group-hover:scale-110" />
+          <span className="absolute inset-0 -m-1 rounded-full bg-primary/25" />
+          <span
+            className="relative grid place-items-center rounded-full bg-primary text-primary-foreground shadow-xl transition-transform group-hover:scale-105"
+            style={{ width: 168, height: 168 }}
+          >
+            <Phone className="h-12 w-12" />
+          </span>
+        </button>
+
+        <div className="mt-8 text-base font-medium">Call Continuity</div>
+        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+          One button. A calm voice. It tells you what you need to remember.
+        </p>
+      </div>
+    </Card>
+  );
+}
+
+/* ---------------- Active call ---------------- */
+
+function CallScreen({
+  state,
+  seconds,
+  muted,
+  onToggleMute,
+  onEnd,
+  transcript,
+  sources,
+  onAsk,
+}: {
+  state: CallState;
+  seconds: number;
+  muted: boolean;
+  onToggleMute: () => void;
+  onEnd: () => void;
+  transcript: Turn[];
+  sources: string[];
+  onAsk: (q: string) => void;
+}) {
+  const statusLabel: Record<CallState, string> = {
+    ready: "Ready",
+    calling: "Calling…",
+    listening: "Listening…",
+    thinking: "Thinking…",
+    speaking: "Speaking…",
+    ended: "Call ended",
+  };
+
+  const lastAi = [...transcript].reverse().find((t) => t.role === "ai");
+  const lastUser = [...transcript].reverse().find((t) => t.role === "user");
+
+  return (
+    <Card className="overflow-hidden rounded-3xl border-border/60 bg-gradient-to-b from-primary/5 to-background p-0">
+      <div className="flex flex-col items-center px-6 pt-10 pb-8 text-center">
+        <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+          On a call with
+        </p>
+        <h2 className="mt-1 text-2xl font-medium tracking-tight">Continuity</h2>
+        <p className="mt-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              state === "calling"
+                ? "animate-pulse bg-amber-500"
+                : state === "listening"
+                ? "bg-emerald-500"
+                : state === "thinking"
+                ? "animate-pulse bg-primary"
+                : state === "speaking"
+                ? "bg-primary"
+                : "bg-muted-foreground"
+            )}
+          />
+          {statusLabel[state]}
+          <span className="text-muted-foreground/60">·</span>
+          <span className="tabular-nums">{formatTime(seconds)}</span>
+        </p>
+
+        {/* Avatar / waveform */}
+        <div className="relative mt-10 grid place-items-center">
+          <span
+            className={cn(
+              "absolute inset-0 -m-6 rounded-full bg-primary/15",
+              (state === "listening" || state === "speaking") &&
+                "animate-ping"
+            )}
+          />
+          <span className="absolute inset-0 -m-2 rounded-full bg-primary/20" />
+          <div
+            className="relative grid place-items-center rounded-full bg-primary/90 text-primary-foreground shadow-xl"
+            style={{ width: 160, height: 160 }}
+          >
+            <Waveform
+              active={state === "listening" || state === "speaking"}
+              muted={muted && state === "listening"}
+            />
+          </div>
         </div>
+
+        {/* Live caption */}
+        <div className="mt-8 min-h-[3.5rem] max-w-md">
+          {state === "calling" && (
+            <p className="text-sm text-muted-foreground">Connecting…</p>
+          )}
+          {state === "thinking" && (
+            <p className="text-sm text-muted-foreground">
+              Reconstructing the moment…
+            </p>
+          )}
+          {(state === "speaking" || state === "listening") && lastAi && (
+            <p className="text-base leading-relaxed text-foreground">
+              {lastAi.text}
+            </p>
+          )}
+        </div>
+
+        {/* Call controls */}
+        <div className="mt-8 flex items-center justify-center gap-6">
+          <button
+            type="button"
+            onClick={onToggleMute}
+            aria-pressed={muted}
+            aria-label={muted ? "Unmute" : "Mute"}
+            className={cn(
+              "grid h-14 w-14 place-items-center rounded-full border transition",
+              muted
+                ? "border-transparent bg-foreground text-background"
+                : "border-border bg-card text-foreground hover:bg-muted"
+            )}
+          >
+            {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </button>
+          <button
+            type="button"
+            onClick={onEnd}
+            aria-label="End call"
+            className="grid h-16 w-16 place-items-center rounded-full bg-destructive text-destructive-foreground shadow-lg transition hover:scale-105"
+          >
+            <PhoneOff className="h-6 w-6" />
+          </button>
+          <div className="h-14 w-14" aria-hidden />
+        </div>
+
+        {/* Listening prompts */}
+        {state === "listening" && (
+          <div className="mt-8 w-full max-w-md">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Try asking
+            </p>
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              {demoAnswers.map((d) => (
+                <button
+                  key={d.q}
+                  onClick={() => onAsk(d.q)}
+                  className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+                >
+                  {d.q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {exchange && (
-        <div className="mt-10 space-y-4">
-          <div className="rounded-2xl bg-muted/60 p-4">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              You said
-            </div>
-            <div className="mt-1 text-base">{exchange.transcript}</div>
+      {/* Secondary transcript */}
+      {(lastUser || sources.length > 0) && (
+        <div className="border-t border-border/60 bg-background/60 px-6 py-4 text-left">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Transcript
+          </p>
+          <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+            {transcript.slice(-4).map((t, i) => (
+              <p key={i}>
+                <span className="font-medium text-foreground/80">
+                  {t.role === "ai" ? "Continuity" : "You"}:
+                </span>{" "}
+                {t.text}
+              </p>
+            ))}
           </div>
-          <div className="rounded-2xl bg-primary/10 p-5">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-primary">
-              <Sparkle className="h-3 w-3" /> Continuity
-            </div>
-            <div className="mt-2 text-base leading-relaxed text-foreground">
-              {exchange.answer || (
-                <span className="inline-flex gap-1">
-                  <Dot /> <Dot delay={150} /> <Dot delay={300} />
-                </span>
-              )}
-            </div>
-            {exchange.sources.length > 0 && (
-              <div className="mt-4 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-                <div className="font-medium text-foreground">Reconstructed from</div>
-                <ul className="mt-1 space-y-0.5">
-                  {exchange.sources.map((s) => (
-                    <li key={s}>· {s}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          {sources.length > 0 && (
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Sources: {sources.join(" · ")}
+            </p>
+          )}
         </div>
       )}
     </Card>
   );
 }
 
-function Dot({ delay = 0 }: { delay?: number }) {
+function Waveform({ active, muted }: { active: boolean; muted: boolean }) {
+  const bars = [0, 1, 2, 3, 4, 5, 6];
   return (
-    <span
-      className="inline-block h-2 w-2 animate-bounce rounded-full bg-primary/70"
-      style={{ animationDelay: `${delay}ms` }}
-    />
+    <div className="flex h-12 items-center gap-1.5">
+      {bars.map((i) => (
+        <span
+          key={i}
+          className={cn(
+            "w-1.5 rounded-full bg-primary-foreground/90",
+            active && !muted ? "animate-wave" : "h-2 opacity-60"
+          )}
+          style={
+            active && !muted
+              ? {
+                  animationDelay: `${i * 90}ms`,
+                  animationDuration: "900ms",
+                }
+              : undefined
+          }
+        />
+      ))}
+    </div>
   );
+}
+
+function formatTime(total: number) {
+  const m = Math.floor(total / 60)
+    .toString()
+    .padStart(2, "0");
+  const s = (total % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
 }
 
 /* ---------------- Timeline ---------------- */
