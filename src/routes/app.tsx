@@ -895,6 +895,130 @@ function MiniStat({
   );
 }
 
+/* ---------------- Files ---------------- */
+
+type PatientFile = {
+  id: string;
+  name: string;
+  kind: "document" | "photo" | "voice" | "note";
+  category: "Medical" | "People" | "Daily" | "Memories";
+  updated: string;
+  size: string;
+  summary: string;
+};
+
+const patientFiles: PatientFile[] = [
+  {
+    id: "f1",
+    name: "Saint-Louis discharge summary.pdf",
+    kind: "document",
+    category: "Medical",
+    updated: "Yesterday",
+    size: "412 KB",
+    summary: "Follow-up scan results and next appointment with Dr. Martin.",
+  },
+  {
+    id: "f2",
+    name: "Daily medication list.pdf",
+    kind: "document",
+    category: "Medical",
+    updated: "3 days ago",
+    size: "88 KB",
+    summary: "Morning and evening doses, with photos of each pill.",
+  },
+  {
+    id: "f3",
+    name: "Family — Sarah & the kids.jpg",
+    kind: "photo",
+    category: "People",
+    updated: "Last week",
+    size: "2.1 MB",
+    summary: "Sarah, your daughter, with Léo and Mia at the park.",
+  },
+  {
+    id: "f4",
+    name: "Karim — voice note.m4a",
+    kind: "voice",
+    category: "People",
+    updated: "Today, 09:12",
+    size: "1:24",
+    summary: "Karim explaining he'll pick you up after the appointment.",
+  },
+  {
+    id: "f5",
+    name: "Morning routine.txt",
+    kind: "note",
+    category: "Daily",
+    updated: "Today",
+    size: "1 KB",
+    summary: "Wake up, medication, breakfast, short walk in the garden.",
+  },
+  {
+    id: "f6",
+    name: "Anniversary in Lyon.jpg",
+    kind: "photo",
+    category: "Memories",
+    updated: "2 weeks ago",
+    size: "3.4 MB",
+    summary: "You and Marie celebrating 40 years together.",
+  },
+];
+
+function FileKindIcon({ kind }: { kind: PatientFile["kind"] }) {
+  if (kind === "photo") return <ImageIcon className="h-4 w-4" />;
+  if (kind === "voice") return <Volume2 className="h-4 w-4" />;
+  if (kind === "note") return <BookOpen className="h-4 w-4" />;
+  return <FileText className="h-4 w-4" />;
+}
+
+function FilesPanel() {
+  const categories = ["Medical", "People", "Daily", "Memories"] as const;
+  return (
+    <div>
+      <div className="mb-4">
+        <h2 className="text-xl font-medium">Files</h2>
+        <p className="text-sm text-muted-foreground">
+          Documents, photos and voice notes Continuity can pull from during a call.
+        </p>
+      </div>
+      <div className="space-y-6">
+        {categories.map((cat) => {
+          const items = patientFiles.filter((f) => f.category === cat);
+          if (!items.length) return null;
+          return (
+            <div key={cat}>
+              <div className="mb-2 flex items-center gap-2">
+                <h3 className="text-sm font-medium text-foreground/80">{cat}</h3>
+                <span className="text-xs text-muted-foreground">{items.length}</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {items.map((f) => (
+                  <Card key={f.id} className="rounded-2xl border-border/60 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted text-foreground/70">
+                        <FileKindIcon kind={f.kind} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium">{f.name}</div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">
+                          {f.updated} · {f.size}
+                        </div>
+                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                          {f.summary}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- People ---------------- */
 
 function PeoplePanel() {
